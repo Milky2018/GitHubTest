@@ -156,98 +156,15 @@ JSONObject jobj = JSONObject.parseObject(jobjstr);
     }
     // Java 不支持默认参数，只能用重载了
 
-    // 下面的方法接近100行，其实只有两条语句
+    // 下面的方法接近100行，省略了大部分case
     public Object parse(Object fieldName) {
         final JSONLexer lexer = this.lexer;
         switch (lexer.token()) {
-            case SET:
-                lexer.nextToken();
-                HashSet<Object> set = new HashSet<Object>();
-                parseArray(set, fieldName);
-                return set;
-            case TREE_SET:
-                lexer.nextToken();
-                TreeSet<Object> treeSet = new TreeSet<Object>();
-                parseArray(treeSet, fieldName);
-                return treeSet;
-            case LBRACKET:
-                JSONArray array = new JSONArray();
-                parseArray(array, fieldName);
-                if (lexer.isEnabled(Feature.UseObjectArray)) {
-                    return array.toArray();
-                }
-                return array;
+            ...
             case LBRACE:
                 JSONObject object = new JSONObject(lexer.isEnabled(Feature.OrderedField));
                 return parseObject(object, fieldName);
-            case LITERAL_INT:
-                Number intValue = lexer.integerValue();
-                lexer.nextToken();
-                return intValue;
-            case LITERAL_FLOAT:
-                Object value = lexer.decimalValue(lexer.isEnabled(Feature.UseBigDecimal));
-                lexer.nextToken();
-                return value;
-            case LITERAL_STRING:
-                String stringLiteral = lexer.stringVal();
-                lexer.nextToken(JSONToken.COMMA);
-
-                if (lexer.isEnabled(Feature.AllowISO8601DateFormat)) {
-                    JSONScanner iso8601Lexer = new JSONScanner(stringLiteral);
-                    try {
-                        if (iso8601Lexer.scanISO8601DateIfMatch()) {
-                            return iso8601Lexer.getCalendar().getTime();
-                        }
-                    } finally {
-                        iso8601Lexer.close();
-                    }
-                }
-
-                return stringLiteral;
-            case NULL:
-                lexer.nextToken();
-                return null;
-            case UNDEFINED:
-                lexer.nextToken();
-                return null;
-            case TRUE:
-                lexer.nextToken();
-                return Boolean.TRUE;
-            case FALSE:
-                lexer.nextToken();
-                return Boolean.FALSE;
-            case NEW:
-                lexer.nextToken(JSONToken.IDENTIFIER);
-
-                if (lexer.token() != JSONToken.IDENTIFIER) {
-                    throw new JSONException("syntax error");
-                }
-                lexer.nextToken(JSONToken.LPAREN);
-
-                accept(JSONToken.LPAREN);
-                long time = lexer.integerValue().longValue();
-                accept(JSONToken.LITERAL_INT);
-
-                accept(JSONToken.RPAREN);
-
-                return new Date(time);
-            case EOF:
-                if (lexer.isBlankInput()) {
-                    return null;
-                }
-                throw new JSONException("unterminated json string, " + lexer.info());
-            case HEX:
-                byte[] bytes = lexer.bytesValue();
-                lexer.nextToken();
-                return bytes;
-            case IDENTIFIER:
-                String identifier = lexer.stringVal();
-                if ("NaN".equals(identifier)) {
-                    lexer.nextToken();
-                    return null;
-                }
-                throw new JSONException("syntax error, " + lexer.info());
-            case ERROR:
+            ...
             default:
                 throw new JSONException("syntax error, " + lexer.info());
         }
@@ -256,7 +173,7 @@ JSONObject jobj = JSONObject.parseObject(jobjstr);
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
-为了完整性，我粘贴出了整个方法实现。词法分析是整个解析算法的基础，很重要，但不是我们研究的重点，所以这里不进行详细解释。在我们的例子中我定义的字符串 jobjstr 开头为左花括号'{'，因此在 switch-case 语句中，我们直接定位到第24行：
+为了完整性，我粘贴出了整个方法实现。词法分析是整个解析算法的基础，很重要，但不是我们研究的重点，所以这里不进行详细解释。在我们的例子中我定义的字符串 jobjstr 开头为左花括号'{'，因此在 switch-case 语句中，我们直接定位到第10行：
 
 ```java
 case LBRACE:
