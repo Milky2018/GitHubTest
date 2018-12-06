@@ -218,9 +218,15 @@ protected void write(JSONSerializer serializer,
 }
 ```
 
-第一条语句就提取出了 out 对象，后面的过程中经常调用 out 的方法，其中就包含了 write\(\)，从而真正做到把序列化产生的字符以及字符串写回 buf。
+第一条语句就提取出了 out 对象，后面的过程中不断地回调 out 的方法，其中就包含了 write\(\)，从而真正做到把序列化产生的字符以及字符串写回 buf。
 
-## 2.3 整体
+## 2.3 名字？
+
+刚刚经过一段很长的旅程，是时候回顾一下我们为一个 Bean 创建一个 Serializer 的过程了：
+
+![2.2 UML](.gitbook/assets/jsonawareserializer.png)
+
+这张图体现了我们在 2.2 中分析过的一些类之间的关系。我只显示了类名和类之间的继承、组合关系（方法依赖、类字段、类方法中的任何一个出现在图中都会使得图变成一团乱麻）。位于图底部的 JSON 是 API 入口，由于它实现了 JSONAware，我们可以调用静态方法 toJSONString\(\)。要完成 toJSONString\(\) 的功能，就要创建一个 SerializeWriter 对象用来暂存序列化产生的字符串，一个 SerializeConfig 对象用来保存和匹配类型信息，一个 JSONSerializer 对象用来维护以上两个对象并完成序列化主要职责。第一次解析 JavaBean 对象时，创建了一个 JavaBeanSerializer 对象，并把 this 作为参数传入 JavaBeanSerializer 对象的成员函数中，通过回调完成序列化。
 
 
 
