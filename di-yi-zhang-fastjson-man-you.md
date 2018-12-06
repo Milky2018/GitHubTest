@@ -154,7 +154,7 @@ JSONObject jobj = JSONObject.parseObject(jobjstr);
     public Object parse() {
         return parse(null);
     }
-    // Java 不支持默认参数，只能用重载了
+    // Java 不支持默认参数，用方法重载来达到简化调用的效果
 
     // 下面的方法接近100行，省略了大部分case
     public Object parse(Object fieldName) {
