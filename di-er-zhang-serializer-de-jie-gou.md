@@ -4,7 +4,7 @@ description: Lei Zhengyu - 2018年12月6日
 
 # 第二章：Serializer的结构
 
-## 2.1 Serializer概览
+## 2.1 Serializer示例
 
 fastjson 提供的 API 包含了各种类之间的转换方法，这一章要讨论的是序列化方法。序列化方法的 API 是 JSON.toJSONString\(\)。这个方法被重载多次，可以用于将多种不同的类型转化为字符串。在第一章的示例中，我们演示了 toJSONString\(\) 将一个 JSONObject 对象转化为字符串的操作，现在我们看几个更复杂的例子：
 
@@ -30,7 +30,7 @@ System.out.println(JSON.toJSONString(tomy, SerializerFeature.BeanToArray));
 
 当然，你也可以把这些 JavaBean 对象转化成 JSONObject 或者 JSONArray，用 toJSON\(\) 方法就可以了。同样的，JavaBean 可以被转化成去掉 key 的 JSONArray。BeanToArray 是一种映射模式，与之对应的是反序列化的 ArrayToBean 模式。BeanToArray 模式和普通模式相比拥有更好的性能。
 
-## 2.2 SerializeWriter 类与回调
+## 2.2 SerializeWriter 类与 JSONSerializer 类
 
 JSON.toJSONString\(\) 方法在 JSON.java 中被重载了 10 次，其中大部分是为了简化方法调用，核心方法只有以下两个：
 
@@ -153,7 +153,7 @@ public class JSONSerializer extends SerializeFilterable {
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
-在我们的例子中，构造方法只传入了 SerializeWriter，此时配置参数 config 由配置参数的全局实例替代（全局实例是一个不含任何额外信息的朴素常量）。当 serializer.write\(\) 被调用时，
+在我们的例子中，构造方法只传入了 SerializeWriter，此时配置参数 config 由配置参数的全局实例替代（全局实例是一个不含任何额外信息的朴素常量）。当 serializer.write\(\) 被调用时，又一个名为 writer 被创建用来执行一个名字仍然是 write 的方法：
 
 {% code-tabs %}
 {% code-tabs-item title="JSONSerializer.java" %}
@@ -178,6 +178,49 @@ public class JSONSerializer extends SerializeFilterable {
 ```
 {% endcode-tabs-item %}
 {% endcode-tabs %}
+
+这个 writer 本质上是一个 HashMap，先不讨论它的创建过程，我们通过参数传递知道这个 writer 包含了 object 的类型信息就可以了。回忆一下，在我们的测试用例中，上面这个函数的参数是一个 JavaBean。ObjectSerializer 接口中声明了 write\(\) 方法：
+
+{% code-tabs %}
+{% code-tabs-item title="ObjectSerializer.java" %}
+```java
+public interface ObjectSerializer {
+    void write(JSONSerializer serializer, //
+               Object object, //
+               Object fieldName, //
+               Type fieldType, //
+               int features) throws IOException;
+}
+```
+{% endcode-tabs-item %}
+{% endcode-tabs %}
+
+最终 write 是如何执行的取决于从 getObjectWriter\(\) 中返回的 writer 是什么具体类型。这里我省去了很多细节，getObjectWriter\(\) 方法体很庞大，里面进行了很多判断，最终通过以下语句创建了一个 JavaBeanSerializer 对象并返回：
+
+```java
+writer = createJavaBeanSerializer(clazz);
+```
+
+这行代码接近整个方法体的底部，它执行的条件是之前所有对 clazz 的匹配都失败了，所以把它当作 JavaBean 处理。我们之前的分析中一直都没有太在意我们测试用例的具体情况导致程序执行流程的不同，因为我们几乎一直在程序主干——每个 toJSONString\(\) 几乎都要经历以上过程。从现在开始，我们进入 Serializer 的一小个分支中了：如果我们要序列化的 Object 不是一个 JavaBean，在 SerializeConfig.getObjectWriter\(\) 执行后会返回其它的 ObjectSerializer 类型。
+
+我们总算是找到了 write\(\) 的方法体，但是 JavaBeanSerializer.write\(\) 方法体篇幅有近四百行，这就是序列化的具体算法代码了。现在不是咀嚼算法的时候，我们只关心已经快要被遗忘的 SerializerWriter 和它的成员方法 SerializerWriter.write\(\) 。意料之中，JavaBeanSerializer.write\(\) 方法体正是围绕它的第一个参数 serializer 展开的，而这个 serializer 就维护着我们的 SerializerWriter 对象 out：
+
+```java
+protected void write(JSONSerializer serializer, 
+                     Object object, 
+                     Object fieldName, 
+                     Type fieldType, 
+                     int featureboolean unwrapped) throws IOException {
+    SerializeWriter out = serializer.out;
+    /* 
+    ***
+    */
+}
+```
+
+第一条语句就提取出了 out 对象，后面的过程中经常调用 out 的方法，其中就包含了 write\(\)，从而真正做到把序列化产生的字符以及字符串写回 buf。
+
+## 2.3 整体
 
 
 
