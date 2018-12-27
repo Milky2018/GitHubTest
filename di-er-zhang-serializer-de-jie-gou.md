@@ -140,7 +140,7 @@ public final class SerializeWriter extends Writer {
 
 write\(\) 方法也有直接写入多个字符的实现（事实上它继承自 Writer，是必须实现的），逻辑稍显复杂，我选择呈现写入单个字符的 write\(\)。通过这个实现能进一步确定 SerializeWriter 作为缓冲区的作用。
 
-但 SerializeWriter.write\(\) 方法此时还不能被调用，在真正生成字符串之前，我们还需要很多信息：比如我们至少要知道我们要向 buf 里写什么！回到我之前浓缩的三条语句，第二条用已经生成的 SerializeWriter 对象 out 创建了一个 JSONSerializer 对象 serializer。这个类名让人有些摸不着头脑。serializer 对象中维护着一个 SerializeConfig 对象 config 和一个 SerializeWriter 对象 out，如下：
+但 SerializeWriter.write\(\) 方法此时还不能被调用，在真正生成字符串之前，我们还需要很多信息：我们至少要知道我们要向 buf 里写什么！回到我之前浓缩的三条语句，第二条用已经生成的 SerializeWriter 对象 out 创建了一个 JSONSerializer 对象 serializer。这个类名让人有些摸不着头脑。serializer 对象中维护着一个 SerializeConfig 对象 config 和一个 SerializeWriter 对象 out，如下：
 
 {% code-tabs %}
 {% code-tabs-item title="JSONSerializer.java" %}
@@ -220,7 +220,7 @@ protected void write(JSONSerializer serializer,
 
 第一条语句就提取出了 out 对象，后面的过程中不断地回调 out 的方法，其中就包含了 write\(\)，从而真正做到把序列化产生的字符以及字符串写回 buf。
 
-## 2.3 名字？
+## 2.3 总结
 
 刚刚经过一段很长的旅程，是时候回顾一下我们为一个 Bean 创建一个 Serializer 的过程了：
 
