@@ -36,7 +36,7 @@ fastjson 有非常多的 testcase，在 1.2.11 版本中，testcase 超过 3321 
 
 fastjson 的 API 十分简洁：
 
-```text
+```java
 String text = JSON.toJSONString(obj); //序列化
 VO vo = JSON.parseObject("{...}", VO.class); //反序列化
 ```
@@ -45,11 +45,15 @@ VO vo = JSON.parseObject("{...}", VO.class); //反序列化
 
 支持泛型，支持流处理超大文本，支持枚举，支持序列化和反序列化扩展。
 
+以上一段都是来自 alibaba 的官方文档：
+
 > [https://github.com/alibaba/fastjson/wiki/Quick-Start-CN](https://github.com/alibaba/fastjson/wiki/Quick-Start-CN)
+
+官方文档当然会尽量提项目的优点。在后面的解析中，我们会对这些“优点”进行客观分析。
 
 ## 1.3 从简单示例漫游 fastjson
 
-一个针对 Java 的 JSON 解析框架最基本的功能是解析和序列化，下面示例定义了一个简单的复合 JSON Object 语法的 Java 字符串：
+一个针对 Java 的 JSON 解析框架最基本的功能是解析和序列化，下面示例定义了一个简单的符合 JSON Object 语法的 Java 字符串：
 
 ```java
 String jobjstr = "{" +
@@ -278,9 +282,9 @@ public class JSONAwareSerializer implements ObjectSerializer {
 
 现在整个序列化器的结构就清晰很多了：接口 ObjectSerializer 规定序列化器必须有 write 方法，这是序列化器和上层调用之间的协议，JSONAwareSerializer 作为一个序列化器实现了自己的 write 方法。JSONAware 接口规定 toJSONString 方法必须被实现，这是 JSONAware 和序列化器之间的协议，JSONAwareSerializer 在实现中用到了 JSONAware 接口的 toJSONString 方法。同层次的类有相似之处，不同层次的类之间相互调用却有条不紊，通过利用接口达到了解耦的效果。
 
-## 1.5 第一章结语？
+## 1.5 结语
 
-在以上所有类图和源码中，不难发现一个事实：接口的功能重要而单一！这符合设计原则的单一职责原则。面向对象设计原则被总结为7或8个，有趣的是，这些原则本身就是“紧耦合”的。
+在以上所有类图和源码中，不难发现一个事实：接口的功能重要而单一！这符合设计原则的单一职责原则。面向对象设计原则被总结为5～8个，有趣的是，这些原则本身就是“紧耦合”的。
 
 一般来说，好的设计是能同时满足所有原则的，例如，在 fastjson 中，凡是使用了继承语法的地方，子类和父类之间必定有很强的“血缘”关系（事实上用到的继承语法很少），否则就会使用组合语法而不是继承。这符合开放封闭原则、里氏替换原则和合成/聚合原则。又例如上述的接口功能单一，符合依赖倒置原则、接口隔离原则，而接口的运用本身就满足了迪米特原则……
 
@@ -289,10 +293,6 @@ public class JSONAwareSerializer implements ObjectSerializer {
 fastjson 作为非常优秀的框架，自然还有很多值得挖掘的地方。在接下来的几章，我将会详细介绍其中序列化器、反序列化器的设计，词法、语法解析的实现方式，设计模式的分析等等。
 
 另一方面，由于我先前没有系统学过 Java，只能在学习 fastjson 源码的过程中慢慢学习。目前写得少见得也少，不知道好的代码有多好，差的代码又怎么糟糕。在学习 fastjson 期间，我还会阅读一些其它项目的源码，在对比中分析、学习。
-
-随着自己对面向对象的理解的深入，以上所有内容在未来必定会有所改动。
-
-我的课堂展示是第二次，恳切希望自己能在那之前有足够的积累，争取能给老师、同学带来干活十足又不失趣味的一次展示。
 
 11 月 1日
 
