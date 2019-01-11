@@ -4,6 +4,8 @@ description: Lei Zhengyu - 2018年12月6日
 
 # 第二章：Serializer的结构
 
+在导言部分，我们窥视了序列化器 package 的宏观结构，现在我们要跟着测试用例的执行轨迹深入到每一个类。
+
 ## 2.1 Serializer示例
 
 fastjson 提供的 API 包含了各种类之间的转换方法，这一章要讨论的是序列化方法。序列化方法的 API 是 JSON.toJSONString\(\)。这个方法被重载多次，可以用于将多种不同的类型转化为字符串。在第一章的示例中，我们演示了 toJSONString\(\) 将一个 JSONObject 对象转化为字符串的操作，现在我们看几个更复杂的例子：
@@ -337,7 +339,7 @@ public class SerializeConfig {
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
-从这表格状的代码可以看出内部注册的序列化方案。值得注意的是，序列化器的名字既有以 Codec 结尾的，也有以 Serializer 结尾的，这个差别的本质将在下一章揭示。还值得注意的一点是，每个 Codec 类和 Serializer 类都维护了一个 instance 对象，这有些类似于设计模式中的 Singleton 模式，但不严格，这个情况和之前一直被提及的 SerializeConfig.globalInstance 很相似。
+从这表格状的代码可以看出内部注册的序列化方案。值得注意的是，序列化器的名字既有以 Codec 结尾的，也有以 Serializer 结尾的，这个差别的本质将在第四章揭示。还值得注意的一点是，每个 Codec 类和 Serializer 类都维护了一个 instance 对象，这有些类似于设计模式中的 Singleton 模式，但不严格，这个情况和之前一直被提及的 SerializeConfig.globalInstance 很相似。
 
 每一种内部注册序列化器的 write\(\) 方法具体实现大同小异，想要对这部分具体了解的读者可以阅读每个序列化器的 write\(\) 方法，有时这会让你奇怪：既然好几种 write\(\) 的实现都只是有细微的区别，为什么不采取一种能够复用代码的机制，让事情变得简洁？的确，Google 的 Json 库 gson，就在这里采取了 Adapter 模式，代码看上去非常简洁，但背后的实用性有待讨论。
 

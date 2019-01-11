@@ -74,3 +74,40 @@ public class Singleton {
 }
 ```
 
+问题终于解决了。这个实现看起来有些过于考虑底层问题，所以，在不是很在乎性能的情况下，我还是建议大家用 lazy 方式，不过，如果你的程序有多个类加载器就要小心了，它们有可能创建各自的 Singleton 实例。
+
+## 3.3 Singleton vs. 全局变量 vs. static类
+
+以及继承 Singleton 的问题。这些内容暂时保留，因为我自己都还没有理解清楚。。。
+
+## 3.4 Singletonitis
+
+Singletonitis 是 Joshua Kerievsky 在《重构与模式》一书中发明的词汇，意思是“沉迷于 Singleton 模式“。Kerievsky 认为绝大多数时候，Singleton 的出现是不必要的，此时使用内联 Singleton 重构是一种摆脱不必要的 Singleton 的有效方法。
+
+Kerievsky 认为：当把一个对象资源以引用的方式传给需要它的对象，比让需要它的对象全局访问这一资源更简单的时候，或者 Singleton 被用来获得无关紧要的内存或性能改进时，以及系统中深层次代码需要访问一个并不存在相同层次中的资源的时候，Singleton 就是不必要的。
+
+究其原因，我认为，Kerievsky 在担心一个 Singleton 会被很容易地访问，而它的状态又是被共享的，这或许是一种灾难。这些事情留给未来的我们去权衡，我们处于入门阶段，尚不需要懂得如何拒绝它。
+
+## 3.5 回到fastjson
+
+为什么我在第二章说 fastjson 中的各种 Codec 类不是严格的 Singleton 模式，原因在于它们的构造器都是公开的，不严格限制实例数量。以 FloatCodec 为例：
+
+{% code-tabs %}
+{% code-tabs-item title="FloatCodec.java" %}
+```java
+public class FloatCodec implements ObjectSerializer, ObjectDeserializer {
+    public static FloatCodec instance = new FloatCodec();
+
+    public FloatCodec(){
+
+    }
+    ...
+}
+```
+{% endcode-tabs-item %}
+{% endcode-tabs %}
+
+那么它算不算 Singleton 模式呢？纠结这个问题没什么价值，不过我还是认为它算是 Singleton 模式。首先它的应用场景符合 Singleton 的动机，一个解码器不需要多个实例；其次，整个 fastjson 类库的源代码中找不到第二处对于 FloatCodec 类的实例化，可以猜测公开其构造器是为了测试或者用户扩展。
+
+幸运的是，在这个例子中我们也不需要担心 Kerievsky 考虑的问题，因为一个 FloatCodec 的状态在它被创建时就已经被确定了，类的定义中没有和字段相关的 set 方法。
+
