@@ -2,7 +2,7 @@
 description: Lei Zhengyu - 2018年1月10日
 ---
 
-# 第三章：插曲：Singleton 模式的讨论
+# 第四章：Singleton模式的讨论
 
 在第二章末尾，我们谈到了 fastjson 在诸多 Serializer 中用到的 Singleton 模式，本章从这些例子出发探讨面向对象设计模式。
 

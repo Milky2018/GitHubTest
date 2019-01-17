@@ -2,11 +2,11 @@
 description: Lei Zhengyu - 2018年1月10日
 ---
 
-# 第四章：反序列化的泛型处理
+# 第五章：Deserializer的结构
 
 导言部分粗略地介绍了 parse 系列方法的使用方式和效果，现在有了第二章的基础，阅读 Deserializer 源码应当更加容易。
 
-## 4.1 ObjectDeserializer接口
+## 4.1 ObjectDeserializer接口与内部注册反序列化方案
 
 所有的反序列化器都要实现 ObjectDeserializer 接口：
 
@@ -131,9 +131,9 @@ public class ParserConfig {
 {% endcode-tabs-item %}
 {% endcode-tabs %}
 
-## 4.2 ParserConfig
+## 4.2 ParserConfig类
 
-在第一章我展示了一个简单的 parseObject\(\) 方法。同 toJSONString\(\)一样，parseObect\(\) 也被重载了很多次，以下是两个个内部最终被调用的 parseObject\(\) 方法：
+在第一章我展示了一个简单的 parseObject\(\) 方法。同 toJSONString\(\)一样，parseObect\(\) 也被重载了很多次，以下是两个个内部最终被调用的完整 parseObject\(\) 方法：
 
 {% code-tabs %}
 {% code-tabs-item title="JSON.java" %}
@@ -204,5 +204,117 @@ public abstract class JSON implements JSONStreamAware, JSONAware {
 
 到目前为止，反序列化步骤和序列化步骤还是相似的：创建 ParserConfig 对象，包括初始化内部注册反序列化方案和 features 的配置；添加反序列化拦截器；根据具体类型，将反序列化器实例的查找委托给 parser 对象；解析对象内部引用。
 
+而不指定 ParserConfig 对象时，就使用第四章中提到的 Singleton：
 
+{% code-tabs %}
+{% code-tabs-item title="JSON.java" %}
+```java
+public abstract class JSON implements JSONStreamAware, JSONAware {    
+    ...    
+    public static <T> T parseObject(InputStream is, //
+                                    Charset charset, //
+                                    Type type, //
+                                    Feature... features) throws IOException {
+        return (T) parseObject(is, charset, type, ParserConfig.global, features);
+    }
+    ...
+}
+```
+{% endcode-tabs-item %}
+{% endcode-tabs %}
+
+parseObject\(\) 方法内部委托 DefaultJSONParser 对象进行解析，以下是一个典型的 parseObject\(\) 方法：
+
+{% code-tabs %}
+{% code-tabs-item title="DefaultJSONParser.java" %}
+```java
+public class DefaultJSONParser implements Closeable {
+    ...
+    public <T> T parseObject(Type type, Object fieldName) {
+        int token = lexer.token();
+        if (token == JSONToken.NULL) {
+            lexer.nextToken();
+            return null;
+        }
+
+        if (token == JSONToken.LITERAL_STRING) {
+            if (type == byte[].class) {
+                byte[] bytes = lexer.bytesValue();
+                lexer.nextToken();
+                return (T) bytes;
+            }
+
+            if (type == char[].class) {
+                String strVal = lexer.stringVal();
+                lexer.nextToken();
+                return (T) strVal.toCharArray();
+            }
+        }
+
+        ObjectDeserializer derializer = config.getDeserializer(type);
+
+        try {
+            if (derializer.getClass() == JavaBeanDeserializer.class) {
+                return (T) ((JavaBeanDeserializer) derializer).deserialze(this, type, fieldName, 0);
+            } else {
+                return (T) derializer.deserialze(this, type, fieldName);
+            }
+        } catch (JSONException e) {
+            throw e;
+        } catch (Throwable e) {
+            throw new JSONException(e.getMessage(), e);
+        }
+    }
+    ...
+}
+```
+{% endcode-tabs-item %}
+{% endcode-tabs %}
+
+其中第24行委托了 config 配置具体的序列化器。在第三章，我们曾经将 JavaBean 类型与其它类型的序列化分开讨论，因为 JavaBean 会让解析变得复杂（触及类型信息）。在这里，因为泛型，反序列化要更加复杂。ParserConfig.getDeserializer\(\) 方法显然要对泛型进行特殊处理：
+
+{% code-tabs %}
+{% code-tabs-item title="ParserConfig.java" %}
+```java
+public class ParserConfig {
+    ...    
+    public ObjectDeserializer getDeserializer(Type type) {
+        ObjectDeserializer derializer = this.deserializers.get(type);
+        if (derializer != null) {
+            return derializer;
+        }
+
+        if (type instanceof Class<?>) {
+            return getDeserializer((Class<?>) type, type);
+        }
+
+        if (type instanceof ParameterizedType) {
+            Type rawType = ((ParameterizedType) type).getRawType();
+            if (rawType instanceof Class<?>) {
+                return getDeserializer((Class<?>) rawType, type);
+            } else {
+                return getDeserializer(rawType);
+            }
+        }
+
+        if (type instanceof WildcardType) {
+            WildcardType wildcardType = (WildcardType) type;
+            Type[] upperBounds = wildcardType.getUpperBounds();
+            if (upperBounds.length == 1) {
+                Type upperBoundType = upperBounds[0];
+                return getDeserializer(upperBoundType);
+            }
+        }
+
+        return JavaObjectDeserializer.instance;
+    }
+    ...
+}
+```
+{% endcode-tabs-item %}
+{% endcode-tabs %}
+
+简要说明这段代码的具体逻辑：首先从已经注册的方案中查找class的反序列化器；如果找不到且目标是引用类型，用 getDeserializer\(\(Class&lt;?&gt;\) type, type\) 方法递归查找；如果又找不到，而且目标是泛型，先获取泛型的原始类型，判断其是否为引用类型，再用不同方式递归查找；接下来是通配符和限定类型的判断；最后，如果都不满足，就返回默认的反序列化器 JavaObjectDeserializer。
+
+重载的 getDeserializer\(\(Class&lt;?&gt;\) type, type\) 方法体很庞大，但有了序列化 Bean 的代码阅读经验，我们知道，再初次遇见 Bean 时，该方法一定会返回一个由名为 createJavaBeanDeserializer\(\) 的方法生产的 JavaBeanDeserializer. 下一章我们将具体分析这个过程。
 
